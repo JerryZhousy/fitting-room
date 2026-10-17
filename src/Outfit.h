@@ -3006,7 +3006,7 @@ namespace OS {
             const bool removedActive = active_ == static_cast<int>(i);
             Remove(i);
             if (removedActive && !outfits_.empty()) {
-                Activate(std::min(i, outfits_.size() - 1));
+                Activate((std::min)(i, outfits_.size() - 1));
             }
             return active_;
         }

@@ -20,6 +20,7 @@
         { "name": "safetyhook", "version": "0.7.0" },
         { "name": "zydis", "version": "4.1.1" },
         { "name": "zycore", "version": "1.5.2" },
-        { "name": "imgui", "version": "1.92.8" }
+        { "name": "imgui", "version": "1.92.8" },
+        { "name": "spdlog", "version": "1.17.0" }
     ]
 }

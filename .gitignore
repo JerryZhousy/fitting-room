@@ -17,3 +17,4 @@ release/
 
 # build output from tools/make_locks_page.py
 tools/dye-locks.html
+*.cmd
