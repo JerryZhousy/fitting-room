@@ -2,6 +2,7 @@
 
 #include "LookFaceTint.h"  // Held/PathFor: which export is this character's own face
 #include "MakeupBaseline.h"  // the record every write batch re-syncs
+#include "MakeupPlan.h"
 #include "ProfileApply.h"    // InFlight: the worn-set watch stands aside during an apply
 #include "OverlayApi.h"    // ArmNodePropertyPush: a skin repaint takes the layers with it
 #include "OverlayBake.h"   // OS-209 on makeup: Ensure and ReadSidecar are source agnostic
@@ -117,6 +118,15 @@ namespace OS::MakeupApi {
         [[nodiscard]] std::uintptr_t OverlayList(std::uintptr_t a_root) {
             return a_root ? *reinterpret_cast<std::uintptr_t*>(a_root + 0x18) : 0u;
         }
+    }  // namespace
+
+    bool FaceManagementEnabled() {
+        return MakeupPlan::FaceManagementAllowed(
+            Settings::GetSingleton().manageFaceAppearance,
+            OverlayApi::Available());
+    }
+
+    namespace {
 
         // Whether the last look found the overlay gone. Said on the EDGE only:
         // LiveList is called from the face watch, so a line per call would be a
@@ -312,6 +322,9 @@ namespace OS::MakeupApi {
         // [Debug] bPrivateFaceTint so a reporter can switch the repair off and
         // watch the alias come back.
         bool PrivatiseFaceTint(const char* a_why) {
+            if (!FaceManagementEnabled()) {
+                return false;
+            }
             if (!OS::Settings::GetSingleton().privateFaceTint) {
                 return false;
             }
@@ -348,6 +361,9 @@ namespace OS::MakeupApi {
         // forms work on x64, where a surplus register argument is simply
         // ignored.
         void Retint() {
+            if (!FaceManagementEnabled()) {
+                return;
+            }
             using func_t = void (*)();
             static REL::Relocation<func_t> func{ REL::RelocationID(51521, 52396) };
             func();
@@ -1297,6 +1313,9 @@ namespace OS::MakeupApi {
     }
 
     void ArmFaceRebakeAfterHeadBuild() {
+        if (!FaceManagementEnabled()) {
+            return;
+        }
         if (std::chrono::steady_clock::now() < g_faceWatchQuietUntil) {
             return;
         }
@@ -1328,6 +1347,11 @@ namespace OS::MakeupApi {
 
     void RunDelayedFaceRebake(RE::Actor* a_actor) {
         if (g_faceChecksLeft <= 0) {
+            return;
+        }
+        if (!FaceManagementEnabled()) {
+            g_faceChecksLeft     = 0;
+            g_faceCheckFromBuild = false;
             return;
         }
         // Belt as well as braces: a cycle armed a frame before the stand-down
@@ -1509,6 +1533,9 @@ namespace OS::MakeupApi {
     }
 
     static void ReassertSkinToneNow(RE::Actor* a_actor) {
+        if (!FaceManagementEnabled()) {
+            return;
+        }
         // ⚠⚠ THIS ONE IS THE REPORTED REGRESSION. A head build repaints the
         // head and leaves the body alone, so standing this down does not put
         // the character back the way they were: it leaves the head on the
@@ -1704,6 +1731,9 @@ namespace OS::MakeupApi {
     }
 
     void NoteHeartbeat(RE::Actor* a_actor) {
+        if (!FaceManagementEnabled()) {
+            return;
+        }
         auto* const player = PlayerFor(a_actor);
         if (!player) {
             return;
@@ -2116,7 +2146,7 @@ namespace OS::MakeupApi {
     }
 
     void RunOwedFaceRebake() {
-        if (!g_rebakeOwed) {
+        if (!g_rebakeOwed || !FaceManagementEnabled()) {
             return;
         }
         g_rebakeOwed = false;
@@ -2130,6 +2160,9 @@ namespace OS::MakeupApi {
     // alias with no Fitting Room line to follow. This looks once a second off
     // the heartbeat and gives such a face its own copy. Silent while private.
     void PrivatiseAliasedFace(RE::Actor* a_actor) {
+        if (!FaceManagementEnabled()) {
+            return;
+        }
         static std::chrono::steady_clock::time_point s_next{};
         const auto now = std::chrono::steady_clock::now();
         if (now < s_next) {
@@ -2151,6 +2184,9 @@ namespace OS::MakeupApi {
     }
 
     void RebakeFaceTint() {
+        if (!FaceManagementEnabled()) {
+            return;
+        }
         // ⚠⚠ THIS IS THE BLEED'S CURE AND THE r39 LOG IS WHY. After loading an
         // earlier save the Nord's tint list reads his OWN pale skin tone, skee's
         // overlay store is empty, and the head's texture set names the vanilla

@@ -443,6 +443,8 @@ namespace OS {
         // instead of a migration of bReassertAppearance.
         keepColoursAfterRebuild = ini.GetBoolValue(
             "Compat", "bKeepColoursAfterRebuild", keepColoursAfterRebuild);
+        manageFaceAppearance = ini.GetBoolValue(
+            "Compat", "bManageFaceAppearance", manageFaceAppearance);
         // The RaceMenu half of a look apply. Same posture: absent takes the
         // C++ default, which is on.
         looksRaceMenu =
@@ -1430,6 +1432,11 @@ namespace OS {
                          "your body keeps the mod's, so the two stop matching and "
                          "the head can go pale. Colours only: this never swaps a "
                          "head part");
+        ini.SetBoolValue("Compat", "bManageFaceAppearance", manageFaceAppearance,
+                         "; master kill switch for face appearance management. When "
+                         "off, or when running on runtimes without RaceMenu Overlay v2, "
+                         "face tint rebaking and private face textures are disabled "
+                         "to avoid corrupting the base tint list");
         ini.SetBoolValue("Compat", "bGridInventoryHide", gridInventoryHide,
                          "; EXPERIMENT, off unless you are testing it. While the "
                          "editor is open Grid Inventory is asked to stop drawing, "

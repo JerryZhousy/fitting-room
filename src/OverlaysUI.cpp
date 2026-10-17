@@ -924,6 +924,20 @@ namespace OS::OverlaysUI {
                 }
                 return;
             }
+            if (!MakeupApi::FaceManagementEnabled()) {
+                const auto header = std::string{ FUCK::Translate("$FR_Mk_Section") } +
+                                    "###ovl_loc_makeup";
+                if (OS::ui::FramedHeader(header.c_str())) {
+                    if (!Settings::GetSingleton().manageFaceAppearance) {
+                        OS::ui::TextDisabledWrapped(
+                            "Face appearance management is disabled in [Compat] bManageFaceAppearance.");
+                    } else {
+                        OS::ui::TextDisabledWrapped(
+                            "RaceMenu Overlay v2 interface is required for Makeup tint editing and rebaking.");
+                    }
+                }
+                return;
+            }
             if (!g.makeupLoaded) {
                 return;
             }
@@ -2177,6 +2191,10 @@ namespace OS::OverlaysUI {
         }
 
         void DrawMakeupEditor(RE::Actor* a_actor) {
+            if (!MakeupApi::FaceManagementEnabled()) {
+                OS::ui::TextDisabledWrapped("Face appearance management is unavailable or disabled.");
+                return;
+            }
             const auto index    = static_cast<std::size_t>(g.makeupSelected);
             auto&      state    = g.makeup[index];
             const auto type     = index < g.makeupLayers.size() ? g.makeupLayers[index].type : 0u;

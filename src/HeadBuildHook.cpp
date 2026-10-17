@@ -103,6 +103,9 @@ namespace {
     // - the live 'Player face tint' bake, another mod's file, an FR file
     // whose race matches - is left alone.
     bool RebakeIfForeignPresetTintBound(RE::PlayerCharacter* a_pc, const char* a_edge) {
+        if (!OS::MakeupApi::FaceManagementEnabled()) {
+            return false;
+        }
         auto* const face = a_pc->GetFaceNodeSkinned();
         if (!face) {
             return false;
@@ -379,39 +382,36 @@ namespace {
         // when nothing put it back. It sits ahead of the outfit-hair gate
         // because a look with no hair colour still owns its skin tone.
         if (auto* const pc = RE::PlayerCharacter::GetSingleton()) {
-            OS::MakeupApi::ReassertSkinTone(pc);
-            // And the rebake a load owes, here rather than at kPostLoadGame,
-            // because it has to land on the far side of the build the load
-            // starts. See MakeupApi::RebakeFaceTint: a baked face outlives the
-            // character it was baked for.
-            // ⚠⚠ THE LOOK'S OWN BAKED FACE FIRST, AND THE REBAKE ONLY IF
-            // THERE IS NONE. A look whose face came from a preset carries its
-            // painted detail in one exported file and NOWHERE ELSE: the
-            // 'makeup' step stands aside for such a look, so the 34-slot list
-            // the rebake composites from is empty of it. Re-binding here and
-            // then compositing over it would land us back where the field
-            // report started, with Umbrael returning without her skull.
             if (OS::LookFaceTint::Apply(pc)) {
                 OS::MakeupApi::CancelFaceRebake();
             }
-            OS::MakeupApi::RunOwedFaceRebake();
-            // ⚠⚠ AND EVERY BUILD AFTER THE FIRST, WHICH THE ONE SHOT ABOVE
-            // CANNOT REACH AND THE RESIDUE CHECK REFUSES TO. Field 2026-08-26
-            // 20:54: the load's debt was paid on the first build and the face
-            // was right, then eight more builds followed over three and a half
-            // minutes, each one leaving a NEW material with an UNNAMED tint.
-            // RebakeIfForeignPresetTintBound stands down on all eight, because
-            // an unnamed texture is not a path under CharGen\\Exported: the
-            // right answer to the question IT asks and the wrong one for this.
-            // The face carried no composite at all for the rest of the session
-            // while the body stayed correct, because the body reads
-            // bodyTintColor and the head wears a texture.
-            //
-            // ⚠ ARMED RATHER THAN DONE HERE. Reading the head inside the build
-            // that is still binding its own material answers about a state one
-            // second from settling, and MakeupApi already owns a bounded delayed
-            // look with a fight guard on it. One watch, not two painters.
-            OS::MakeupApi::ArmFaceRebakeAfterHeadBuild();
+            if (OS::MakeupApi::FaceManagementEnabled()) {
+                OS::MakeupApi::ReassertSkinTone(pc);
+                // And the rebake a load owes, here rather than at kPostLoadGame,
+                // because it has to land on the far side of the build the load
+                // starts. See MakeupApi::RebakeFaceTint: a baked face outlives the
+                // character it was baked for.
+                OS::MakeupApi::RunOwedFaceRebake();
+                // ⚠⚠ AND EVERY BUILD AFTER THE FIRST, WHICH THE ONE SHOT ABOVE
+                // CANNOT REACH AND THE RESIDUE CHECK REFUSES TO. Field 2026-08-26
+                // 20:54: the load's debt was paid on the first build and the face
+                // was right, then eight more builds followed over three and a half
+                // minutes, each one leaving a NEW material with an UNNAMED tint.
+                // RebakeIfForeignPresetTintBound stands down on all eight, because
+                // an unnamed texture is not a path under CharGen\\Exported: the
+                // right answer to the question IT asks and the wrong one for this.
+                // The face carried no composite at all for the rest of the session
+                // while the body stayed correct, because the body reads
+                // bodyTintColor and the head wears a texture.
+                //
+                // ⚠ ARMED RATHER THAN DONE HERE. Reading the head inside the build
+                // that is still binding its own material answers about a state one
+                // second from settling, and MakeupApi already owns a bounded delayed
+                // look with a fight guard on it. One watch, not two painters.
+                OS::MakeupApi::ArmFaceRebakeAfterHeadBuild();
+            } else {
+                OS::MakeupApi::CancelFaceRebake();
+            }
             // ⚠⚠ AND THE LATE BUILDS, WHICH THE ONE SHOT ABOVE CANNOT REACH.
             // r47 MEASURED, twice: the owed rebake wins the FIRST build and
             // the face is right; a SECOND build at +7-12 s re-binds the

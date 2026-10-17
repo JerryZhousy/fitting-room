@@ -8,6 +8,7 @@
 
 namespace RE {
     class Actor;
+    class PlayerCharacter;
 }
 
 // The player's tint mask layers, which is what makeup actually is.
@@ -324,6 +325,12 @@ namespace OS::MakeupApi {
     // engine prefers an installed overlay over the base array, and the two
     // disagreeing after a race switch is the whole of the mismatch bug.
     [[nodiscard]] std::string ListOrigin(RE::Actor* a_actor);
+
+    // Master decision on whether Fitting Room is allowed to manage the face:
+    // requires [Compat] bManageFaceAppearance AND an active, capable RaceMenu
+    // Overlay v2 interface (OverlayApi::Available()). When false, face rebaking,
+    // private face textures, and tint list reassertions are disabled.
+    [[nodiscard]] bool FaceManagementEnabled();
 
     // A cheap identity of the live list: its length folded with every mask
     // pointer. Same value means the same list; a changed value means something

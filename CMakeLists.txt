@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.21)
 
 # "Fitting Room" (formerly Outfit Slots) - ESO-style transmog with saved outfit slots.
 # One DLL supports Skyrim SE 1.5.97 and next-gen AE 1.6.1130+.
-project(FittingRoom VERSION 1.2.0 LANGUAGES CXX)
+project(FittingRoom VERSION 1.2.1 LANGUAGES CXX)
 
 # ⚠ TWO OPTIONS, NOT ONE. FR_BODY_STUDIO compiles the authoring workbench in.
 # FR_BODY_STUDIO_DEV additionally moves the build onto an isolated data channel
@@ -487,7 +487,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE JsonCpp::JsonCpp imgui::imgui
 if(FR_BODY_STUDIO)
     target_link_libraries(${PROJECT_NAME} PRIVATE tinyxml2::tinyxml2)
 endif()
-target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_DEFINE_MATH_OPERATORS)
+target_compile_definitions(${PROJECT_NAME} PRIVATE IMGUI_DEFINE_MATH_OPERATORS NOMINMAX)
 target_compile_definitions(${PROJECT_NAME} PRIVATE
     FR_BUILD_ID="${FR_BUILD_ID}"
     FR_COMMONLIB_VERSION="${FR_COMMONLIB_VERSION}"
@@ -1085,6 +1085,12 @@ target_include_directories(DwellAckTests PRIVATE src)
 add_executable(FaceWaitTests tests/test_facewait.cpp)
 target_compile_features(FaceWaitTests PRIVATE cxx_std_23)
 target_include_directories(FaceWaitTests PRIVATE src)
+
+# Pure-logic face management gate: master decision combining user setting
+# and runtime capability (Overlay v2 availability).
+add_executable(FaceManagementGateTests tests/test_facemanagementgate.cpp)
+target_compile_features(FaceManagementGateTests PRIVATE cxx_std_23)
+target_include_directories(FaceManagementGateTests PRIVATE src)
 
 # Pure-logic Apparel Preview wire format (OS-145): what each of the two
 # messages does to the shared word, and the compatibility pins that say what an

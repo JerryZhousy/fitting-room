@@ -1940,6 +1940,12 @@ namespace OS {
         // and those are now different questions.
         bool keepColoursAfterRebuild{ true };  // [Compat] bKeepColoursAfterRebuild
 
+        // [Compat] bManageFaceAppearance - master kill switch for facegen tint
+        // rebaking, private face tint drawing, and face watch polling. When off,
+        // or on runtimes without RaceMenu Overlay v2, face appearance is left
+        // completely to the vanilla engine and RaceMenu.
+        bool manageFaceAppearance{ true };  // [Compat] bManageFaceAppearance
+
         // [Compat] bLooksRaceMenu - whether applying a look is allowed to load
         // its RaceMenu preset and switch race and sex, which is the character
         // and face steps in ProfilePlan. Off, a look still carries its outfit,

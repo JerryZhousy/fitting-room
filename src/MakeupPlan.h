@@ -1251,4 +1251,12 @@ namespace OS::MakeupPlan {
         return UsedIn(a_state) < kMaxWornLayers;
     }
 
+    // The master decision on whether Fitting Room is allowed to manage the face:
+    // requires [Compat] bManageFaceAppearance AND an active, capable RaceMenu
+    // Overlay v2 interface.
+    [[nodiscard]] constexpr bool FaceManagementAllowed(bool a_manageFaceAppearance,
+                                                      bool a_overlayAvailable) noexcept {
+        return a_manageFaceAppearance && a_overlayAvailable;
+    }
+
 }  // namespace OS::MakeupPlan

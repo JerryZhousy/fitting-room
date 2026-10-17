@@ -1151,10 +1151,12 @@ namespace OS::WorldWatch {
             // once the live slot already holds the value, and it does nothing at
             // all unless a tone is held, so a character Fitting Room is not
             // driving pays one predicate every hundred milliseconds.
-            MakeupApi::ReassertSkinTone(player);
-            // The worn-set watch, an instrument: says the moment any writer
-            // changes what the list wears (field 2026-09-02 02:58).
-            MakeupApi::NoteHeartbeat(player);
+            if (MakeupApi::FaceManagementEnabled()) {
+                MakeupApi::ReassertSkinTone(player);
+                // The worn-set watch, an instrument: says the moment any writer
+                // changes what the list wears (field 2026-09-02 02:58).
+                MakeupApi::NoteHeartbeat(player);
+            }
             // ⚠⚠ THE SECOND HALF OF THAT SENTENCE, AND NOT A DUPLICATE OF IT.
             // The reassert above owns the tint MASK and bodyTintColor. Neither is
             // what the head wears: the head wears a baked TEXTURE, and when skee
