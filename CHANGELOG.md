@@ -12,6 +12,9 @@
   - Preserved `g_rebakeOwed` debt in `RunOwedFaceRebake` if evaluated while the gate is closed.
 - **Makeup UI Availability Feedback**:
   - Display explicit disabled explanation in `OverlaysUI` when face management is disabled or when running on unsupported legacy RaceMenu versions, rather than silently discarding edits.
+- **Head Dismemberment Sweep Overdraw (Skyrim SE / High Poly Head)**:
+  - Fixed face overexposure/whitening artifact where `BipedPost::RestoreHeadPartPartitions` swept slot 130 (`BP_HEAD`), erroneously unhiding suppressed underlying facial partitions (e.g. on High Poly Head or custom meshes) during post-load settle ladder sweeps.
+  - Restricted head partition restoration strictly to hair (131/141), circlet (142), and ears (143) to prevent double-rendered facial meshes.
 
 ### Build & Tooling
 - Added `NOMINMAX` compile definitions to eliminate Windows SDK macro collisions with `std::min`/`std::max`.

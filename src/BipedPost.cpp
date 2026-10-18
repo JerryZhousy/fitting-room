@@ -440,7 +440,12 @@ namespace OS::BipedPost {
                 ++skins;
                 for (std::int32_t i = 0; i < rd.numPartitions; ++i) {
                     const auto slot = rd.partitions[i].slot;
-                    if (slot < 130u || slot > 143u) {
+                    // ⚠ NEVER touch slot 130 (BP_HEAD). Doing so force-unhides suppressed head
+                    // geometry (e.g. underlying mesh layers on High Poly Head or custom head parts),
+                    // which causes the head to be double-rendered and leads to an overbright/white
+                    // face overdraw artifact. This restorer exists strictly to recover hair
+                    // (131/141) and ears (143) hidden behind ghost occupants.
+                    if (slot <= 130u || slot > 143u) {
                         continue;  // the body-slot restorer's space, or caps
                     }
                     ++headParts;
