@@ -1,0 +1,132 @@
+name: Sync Upstream & Notify
+
+on:
+  schedule:
+    # 每天 UTC 03:00 (北京时间 11:00) 自动检查一次
+    - cron: '0 3 * * *'
+  workflow_dispatch: # 支持手动触发
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git Committer
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch Upstream
+        run: |
+          git remote add upstream https://github.com/maartenharms/fitting-room.git || git remote set-url upstream https://github.com/maartenharms/fitting-room.git
+          git fetch upstream main --tags
+
+      - name: Check Upstream Updates
+        id: check_upstream
+        run: |
+          UPSTREAM_HEAD=$(git rev-parse upstream/main)
+          MERGE_BASE=$(git merge-base HEAD upstream/main)
+
+          echo "UPSTREAM_HEAD: $UPSTREAM_HEAD"
+          echo "MERGE_BASE: $MERGE_BASE"
+
+          if [ "$UPSTREAM_HEAD" = "$MERGE_BASE" ]; then
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+            echo "✅ Already up-to-date with upstream/main."
+          else
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+            echo "upstream_head=$UPSTREAM_HEAD" >> $GITHUB_OUTPUT
+            echo "merge_base=$MERGE_BASE" >> $GITHUB_OUTPUT
+
+            # 导出格式化 commit 列表
+            echo "commits_log<<EOF" >> $GITHUB_OUTPUT
+            git log --pretty=format:"* \`%h\` - %s (%an, %cd)" --date=short $MERGE_BASE..upstream/main >> $GITHUB_OUTPUT
+            echo "" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Sync Branch and PR
+        if: steps.check_upstream.outputs.has_updates == 'true'
+        id: create_pr
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          UPSTREAM_HEAD: ${{ steps.check_upstream.outputs.upstream_head }}
+          COMMITS_LOG: ${{ steps.check_upstream.outputs.commits_log }}
+        run: |
+          SYNC_BRANCH="sync/upstream-$(date +%Y%m%d-%H%M)"
+          git checkout -b "$SYNC_BRANCH" upstream/main
+          git push origin "$SYNC_BRANCH" --force
+
+          PR_TITLE="🔄 [Upstream Sync] New changes from maartenharms/fitting-room"
+          PR_BODY=$(cat <<EOF
+          ### 📢 Upstream Changes Detected
+
+          New commits have landed on upstream \`maartenharms/fitting-room:main\`.
+
+          #### 📋 New Commits:
+          $COMMITS_LOG
+
+          #### 🔍 Compare:
+          https://github.com/maartenharms/fitting-room/compare/main...${{ github.repository_owner }}:fitting-room:main
+
+          #### ⚠️ Important Notice for Skyrim 1.5.97:
+          Please ensure that when merging or rebasing, the **1.5.97 / RaceMenu Overlay v1 capability gates** in \`src/MakeupApi.cpp\`, \`src/HeadBuildHook.cpp\`, and \`src/WorldWatch.cpp\` are properly maintained.
+          EOF
+          )
+
+          PR_URL=$(gh pr create \
+            --base main \
+            --head "$SYNC_BRANCH" \
+            --title "$PR_TITLE" \
+            --body "$PR_BODY" || true)
+
+          echo "pr_url=$PR_URL" >> $GITHUB_OUTPUT
+
+      - name: Notify via Issue
+        if: steps.check_upstream.outputs.has_updates == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COMMITS_LOG: ${{ steps.check_upstream.outputs.commits_log }}
+          PR_URL: ${{ steps.create_pr.outputs.pr_url }}
+        run: |
+          EXISTING_ISSUE=$(gh issue list --state open --search "Upstream Update" --json number -q '.[0].number')
+
+          TITLE="🔔 [Upstream Update] New commits available in maartenharms/fitting-room"
+          BODY=$(cat <<EOF
+          ### 📢 Upstream Repository Update Detected
+
+          Upstream repository [maartenharms/fitting-room](https://github.com/maartenharms/fitting-room) has new changes available on branch \`main\`.
+
+          #### 📋 Upstream Commits:
+          $COMMITS_LOG
+
+          ${PR_URL:+#### 🔗 Pull Request: $PR_URL}
+
+          #### 🛠️ Recommended Local Merge Steps:
+          \`\`\`bash
+          git fetch upstream main
+          git merge upstream/main
+          # 验证 1.5.97 FaceManagementEnabled 门禁完整性
+          ninja -C build/release FaceManagementGateTests
+          build/release/FaceManagementGateTests.exe
+          \`\`\`
+          EOF
+          )
+
+          if [ -n "$EXISTING_ISSUE" ]; then
+            echo "Updating existing issue #$EXISTING_ISSUE..."
+            gh issue comment "$EXISTING_ISSUE" --body "$BODY"
+          else
+            echo "Creating notification issue..."
+            gh issue create --title "$TITLE" --body "$BODY"
+          fi
